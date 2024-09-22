@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:${MYSQL_IMAGE_VERSION:-latest}
+    container_name: ${MYSQL_CONTAINER_NAME:-MySQL}
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_USER: ${MYSQL_USER:-user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
+    ports:
+      - "${MYSQL_FORWARD_PORT:-3306}:3306"
+    volumes:
+      - ${MYSQL_DATA_VOLUME:-./data/mysql-data}:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "0.0.0.0", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:${REDIS_IMAGE_VERSION:-latest}
+    container_name: ${REDIS_CONTAINER_NAME:-Redis}
+    restart: always
+    ports:
+      - "${REDIS_FORWARD_PORT:-6379}:6379"
+    volumes:
+      - ${REDIS_DATA_VOLUME:-./data/redis-data}:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis-password}
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-redis-password}"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis-password}", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  postgres:
+    image: postgres:${POSTGRES_IMAGE_VERSION:-latest}
+    container_name: ${POSTGRES_CONTAINER_NAME:-postgresql}
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres-password}
+    ports:
+      - "${POSTGRES_FORWARD_PORT:-5432}:5432"
+    volumes:
+      - ${POSTGRES_DATA_VOLUME:-./data/postgres-data}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  mongodb:
+    image: mongo:${MONGODB_IMAGE_VERSION:-latest}
+    container_name: ${MONGODB_CONTAINER_NAME:-mongodb}
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
+    ports:
+      - ${MONGODB_FORWARD_PORT:-27017}:27017
+    volumes:
+      - ${MONGODB_VOLUME:-./data/mongodb-data}:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--host", "localhost", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 20s
+      retries: 10
+  
+  mongo-express:
+    image: mongo-express:${ME_IMAGE_VERSION:-latest}
+    container_name: ${ME_CONTAINER_NAME:-latest}
+    restart: always
+    ports:
+      - ${ME_FORWARD_PORT:-8081}:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGODB_ROOT_USERNAME:-root}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGODB_ROOT_PASSWORD:-password}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGODB_ROOT_USERNAME:-root}:${MONGODB_ROOT_PASSWORD:-password}@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${ME_BASIC_AUTH_USERNAME:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_BASIC_AUTH_PASSWORD:-strongpassword}
+      ME_CONFIG_BASICAUTH: ${ME_CONFIG_BASICAUTH:-false}
+    volumes:
+      - ${ME_VOLUME:-./data/mongo-express-data}:/config
+
+  mailhog:
+    image: mailhog/mailhog:${MAILHOG_IMAGE_VERSION:-latest}
+    container_name: ${MAILHOG_CONTAINER_NAME:-Mailhog}
+    restart: always
+    ports:
+      - ${MAILHOG_FORWARD_PORT:-587}:587
+      - ${MAILHOG_CONSOLE_FORWARD_PORT:-8025}:8025
+    volumes:
+      - ${MAILHOG_VOLUME:-./data/Mailhog-Maildir}:/srv/Maildir
+
+  minio:
+    image: minio/minio:${MINIO_IMAGE_VERSION:-latest}
+    container_name: ${MINIO_CONTAINER_NAME}
+    restart: always
+    ports:
+      - ${MINIO_FORWARD_PORT:-9000}:9000
+      - ${MINIO_CONSOLE_FORWARD_PORT:-8900}:8900
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-miniopassword}
+    volumes:
+      - ${MINIO_DATA_VOLUME:-./data/minio-data}:/data
+    command: minio server /data/minio --console-address ":${MINIO_CONSOLE_FORWARD_PORT}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://0.0.0.0:${MINIO_FORWARD_PORT:-9000}/minio/health/live"]
+      retries: 3
+      timeout: 5s
+
+volumes:
+  mysql-data:
+  redis-data:
+  postgres-data:
+  minio-data:
+  mongo-data:
