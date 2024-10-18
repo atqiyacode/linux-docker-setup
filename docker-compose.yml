@@ -211,6 +211,25 @@ services:
       PLUGIN_PATH: /kafka/connect/debezium-connector-mysql
     volumes:
       - ./debezium-connector-mysql:/kafka/connect/debezium-debezium-connector-mysql
+  
+  # nginx proxy manager
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:${NGINX_PM_VERSION:-latest}
+    container_name: ${NGINX_PM_NAME:-nginx-proxy-manager}
+    restart: unless-stopped
+    ports:
+      - ${NGINX_PM_VERSION:-80}:80 # Public HTTP Port
+      - ${NGINX_PM_VERSION:-443}:443 # Public HTTPS Port
+      - ${NGINX_PM_VERSION:-81}:81 # Admin Web Port
+      # - ${NGINX_PM_VERSION:-21}:21 # FTP
+    healthcheck:
+      test: ["CMD", "/usr/bin/check-health"]
+      interval: 10s
+      timeout: 3s
+
+    volumes:
+      - ${NGINX_PM_DATA_VOLUME:-./nginx-proxy-manager}:/data
+      - ${NGINX_PM_SSL_DATA_VOLUME:-./letsencrypt}:/etc/letsencrypt
 
 volumes:
   mysql-data:

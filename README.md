@@ -22,6 +22,7 @@ This Docker Compose setup includes several services: MySQL, Redis, PostgreSQL, M
   - [10. Kafka UI](#10-kafka-ui)
   - [11. Debezium](#11-debezium)
   - [12. Keycloak](#12-keycloak)
+  - [13. Nginx Proxy Manager](#13-nginx-proxy-manager)
 - [Health Checks](#health-checks)
 - [Volumes](#volumes)
 - [Stopping Services](#stopping-services)
@@ -237,6 +238,21 @@ KEYCLOAK_HTTP_PORT=7080
 KEYCLOAK_HTTPS_PORT=7443
 KEYCLOAK_ADMIN_USERNAME=admin
 KEYCLOAK_ADMIN_PASSWORD=admin
+```
+
+## 13. Nginx Proxy Manager
+
+Write Description.
+
+```bash
+NGINX_PM_VERSION=latest
+NGINX_PM_NAME=NGINX-PROXY-MANAGER
+NGINX_PM_HTTP_PORT=80
+NGINX_PM_HTTPS_PORT=443
+NGINX_PM_ADMIN_WEB_PORT=81
+NGINX_PM_FTP_PORT=21
+NGINX_PM_DATA_VOLUME=./data/nginx-proxy-manager
+NGINX_PM_SSL_DATA_VOLUME=./data/letsencrypt
 ```
 
 ## Health Checks
