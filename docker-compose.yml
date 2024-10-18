@@ -176,7 +176,7 @@ services:
 
   # kafka 
   kafka-ui:
-    image: provectuslabs/kafka-ui:${KAFKA_UI_VERSION:-lates}
+    image: provectuslabs/kafka-ui:${KAFKA_UI_VERSION:-latest}
     container_name: ${KAFKA_UI_NAME:-kafka-ui}
     restart: unless-stopped
     ports:

@@ -23,6 +23,8 @@ This Docker Compose setup includes several services: MySQL, Redis, PostgreSQL, M
   - [11. Debezium](#11-debezium)
   - [12. Keycloak](#12-keycloak)
   - [13. Nginx Proxy Manager](#13-nginx-proxy-manager)
+  - [14. Grafana](#14-grafana)
+  - [15. Prometheus](#15-prometheus)
 - [Health Checks](#health-checks)
 - [Volumes](#volumes)
 - [Stopping Services](#stopping-services)
@@ -253,6 +255,30 @@ NGINX_PM_ADMIN_WEB_PORT=81
 NGINX_PM_FTP_PORT=21
 NGINX_PM_DATA_VOLUME=./data/nginx-proxy-manager
 NGINX_PM_SSL_DATA_VOLUME=./data/letsencrypt
+```
+
+## 14. Grafana
+
+Write Description.
+
+```bash
+GF_VERSION=latest
+GF_NAME=GRAFANA
+GF_FORWARD_PORT=5000
+GF_SECURITY_ADMIN_USER=admin
+GF_SECURITY_ADMIN_PASSWORD=admin
+GF_DATA_VOLUME=./data/grafana-data
+```
+
+## 15. Prometheus
+
+Write Description.
+
+```bash
+PROMETHEUS_VERSION=latest
+PROMETHEUS_NAME=PROMETHEUS
+PROMETHEUS_FORWARD_PORT=9090
+PROMETHEUS_DATA_VOLUME=./data/prometheus-data
 ```
 
 ## Health Checks
