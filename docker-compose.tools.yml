@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  #mailhog
+  mailhog:
+    image: 42bv/mailhog:${MAILHOG_VERSION:-latest}
+    container_name: ${MAILHOG_NAME:-latest}
+    restart: unless-stopped
+    ports:
+      - ${MAILHOG_SMTP_PORT:-587}:587
+      - ${MAILHOG_UI_PORT:-8025}:8025
+    volumes:
+      - ${MAILHOG_DATA_VOLUME:-./mailhog-data}:/srv/Maildir
+
+  # keycloack
+  keycloak:
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION:-24.0}
+    container_name: ${KEYCLOAK_NAME:-keycloak}
+    restart: unless-stopped
+    environment:
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: ${KEYCLOAK_HTTP_PORT:-7080}
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "true"
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
+      KC_LOG_LEVEL: info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${KEYCLOAK_HTTP_PORT:-7080}/health/ready"]
+      interval: 15s
+      timeout: 2s
+      retries: 15
+    command: ["start-dev", "--http-port", "${KEYCLOAK_HTTP_PORT:-7080}", "--https-port", "${KEYCLOAK_HTTPS_PORT:-7443}"]
+    ports:
+      - ${KEYCLOAK_HTTP_PORT:-7080}:7080
+      - ${KEYCLOAK_HTTPS_PORT:-7443}:7443
+
+  # minio s3 bucket
+  minio:
+    container_name: minio-s3
+    restart: unless-stopped
+    image: minio/minio:latest
+    ports:
+        - ${MINIO_FORWARD_PORT:-9000}:9000
+        - ${MINIO_CONSOLE_FORWARD_PORT:-8900}:8900
+    environment:
+        MINIO_ROOT_USER: ${MINIO_ROOT_USER:-root}
+        MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password}
+    volumes:
+        - ${MINIO_DATA_VOLUME:-./minio-data}:/data
+    command: minio server /data/minio --console-address ":${MINIO_CONSOLE_FORWARD_PORT}"
+    healthcheck:
+        test:
+            - CMD
+            - curl
+            - -f
+            - http://0.0.0.0:${MINIO_FORWARD_PORT}/minio/health/live
+        retries: 3
+        timeout: 5s
+
+  # nginx proxy manager
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:${NGINX_PM_VERSION:-latest}
+    container_name: ${NGINX_PM_NAME:-nginx-proxy-manager}
+    restart: unless-stopped
+    ports:
+      - ${NGINX_PM_VERSION:-80}:80 # Public HTTP Port
+      - ${NGINX_PM_VERSION:-443}:443 # Public HTTPS Port
+      - ${NGINX_PM_VERSION:-81}:81 # Admin Web Port
+      # - ${NGINX_PM_VERSION:-21}:21 # FTP
+    healthcheck:
+      test: ["CMD", "/usr/bin/check-health"]
+      interval: 10s
+      timeout: 3s
+
+    volumes:
+      - ${NGINX_PM_DATA_VOLUME:-./nginx-proxy-manager}:/data
+      - ${NGINX_PM_SSL_DATA_VOLUME:-./letsencrypt}:/etc/letsencrypt
+
+volumes:
+  mailhog-data:
+  minio-data:
+  nginx-proxy-manager:
+  letsencrypt:

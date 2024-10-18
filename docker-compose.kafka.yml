@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  
+  # mysql
+  mysql:
+    image: mysql:${MYSQL_VERSION:-latest}
+    container_name: ${MYSQL_NAME:-mysql}
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-P@ssword}
+      MYSQL_USER: ${MYSQL_USER:-user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
+    ports:
+      - ${MYSQL_FORWARD_PORT:-3306}:3306
+    volumes:
+      - ${MYSQL_DATA_VOLUME:-./mysql-data}:/var/lib/mysql
+      - ./my.cnf:/etc/mysql/my.cnf
+
+  # postgresql
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-latest}
+    container_name: ${POSTGRES_NAME:-postgres}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - ${POSTGRES_FORWARD_PORT:-5432}:5432
+    volumes:
+      - ${POSTGRES_DATA_VOLUME:-./postgres-data}:/var/lib/postgresql/data
+  
+  # zookeeper kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:${ZOOKEEPER_VERSION:-latest}
+    container_name: ${ZOOKEEPER_NAME:-zookeeper}
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_CLIENT_PORT:-2181}
+      ZOOKEEPER_TICK_TIME: ${ZOOKEEPER_NAME:-2000}
+    ports:
+      - ${ZOOKEEPER_CLIENT_PORT:-2181}:2181
+
+  # kafka
+  kafka:
+    image: confluentinc/cp-kafka:${KAFKA_VERSION:-latest}
+    container_name: ${KAFKA_NAME:-kafka}
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    ports:
+      - ${KAFKA_FORWARD_PORT:-9092}:9092
+    environment:
+      KAFKA_BROKER_ID: ${KAFKA_BROKER_ID:-1}
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_CLIENT_PORT:-2181}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_FORWARD_PORT:-9092}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR:-1}
+
+  # kafka 
+  kafka-ui:
+    image: provectuslabs/kafka-ui:${KAFKA_UI_VERSION:-lates}
+    container_name: ${KAFKA_UI_NAME:-kafka-ui}
+    restart: unless-stopped
+    ports:
+      - ${KAFKA_UI_FORWARD_PORT:-8080}:8080
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "local"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:${KAFKA_FORWARD_PORT:-9092}"
+      KAFKA_CLUSTERS_0_ZOOKEEPER: "zookeeper:${ZOOKEEPER_CLIENT_PORT:-2181}"
+    depends_on:
+      - kafka
+      - zookeeper
+
+  # debezium
+  debezium:
+    image: debezium/connect:${DEBEZIUM_VERSION:-latest}
+    container_name: ${DEBEZIUM_NAME:-debezium}
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - mysql
+      - kafka
+      - zookeeper
+    ports:
+      - ${DEBEZIUM_FORWARD_PORT:-8083}:8083
+    environment:
+      BOOTSTRAP_SERVERS: kafka:${KAFKA_FORWARD_PORT:-9092}
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: my_connect_configs
+      OFFSET_STORAGE_TOPIC: my_connect_offsets
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      PLUGIN_PATH: /kafka/connect/debezium-connector-mysql
+    volumes:
+      - ./debezium-connector-mysql:/kafka/connect/debezium-debezium-connector-mysql
+  

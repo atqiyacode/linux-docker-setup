@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # mysql
+  mysql:
+    image: mysql:${MYSQL_VERSION:-latest}
+    container_name: ${MYSQL_NAME:-mysql}
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-P@ssword}
+      MYSQL_USER: ${MYSQL_USER:-user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
+    ports:
+      - ${MYSQL_FORWARD_PORT:-3306}:3306
+    volumes:
+      - ${MYSQL_DATA_VOLUME:-./mysql-data}:/var/lib/mysql
+      - ./my.cnf:/etc/mysql/my.cnf
+
+  # postgresql
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-latest}
+    container_name: ${POSTGRES_NAME:-postgres}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - ${POSTGRES_FORWARD_PORT:-5432}:5432
+    volumes:
+      - ${POSTGRES_DATA_VOLUME:-./postgres-data}:/var/lib/postgresql/data
+      
+  # redis
+  redis:
+    image: redis:${REDIS_VERSION:-alpine}
+    container_name: ${REDIS_NAME:-redis}
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-password}
+    ports:
+      - ${REDIS_FORWARD_PORT:-6379}:6379
+    volumes:
+      - ${REDIS_DATA_VOLUME:-./redis-data}:/data
+
+
+volumes:
+  mysql-data:
+  postgres-data:
+  redis-data:
