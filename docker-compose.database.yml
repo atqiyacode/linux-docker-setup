@@ -1,11 +1,11 @@
-version: '3.8'
-
 services:
   # mysql
   mysql:
     image: mysql:${MYSQL_VERSION:-latest}
     container_name: ${MYSQL_NAME:-mysql}
     restart: unless-stopped
+    networks:
+      - db-network
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-P@ssword}
       MYSQL_USER: ${MYSQL_USER:-user}
@@ -15,12 +15,19 @@ services:
     volumes:
       - ${MYSQL_DATA_VOLUME:-./mysql-data}:/var/lib/mysql
       - ./my.cnf:/etc/mysql/my.cnf
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "0.0.0.0", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   # postgresql
   postgres:
     image: postgres:${POSTGRES_VERSION:-latest}
     container_name: ${POSTGRES_NAME:-postgres}
     restart: unless-stopped
+    networks:
+      - db-network
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
@@ -28,21 +35,37 @@ services:
       - ${POSTGRES_FORWARD_PORT:-5432}:5432
     volumes:
       - ${POSTGRES_DATA_VOLUME:-./postgres-data}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-user}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
       
   # redis
   redis:
     image: redis:${REDIS_VERSION:-alpine}
     container_name: ${REDIS_NAME:-redis}
     restart: unless-stopped
+    networks:
+      - db-network
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-password}
     ports:
       - ${REDIS_FORWARD_PORT:-6379}:6379
     volumes:
       - ${REDIS_DATA_VOLUME:-./redis-data}:/data
-
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-redis-password}"]
+    healthcheck:
+        test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis-password}", "ping"]
+        interval: 30s
+        timeout: 10s
+        retries: 5
 
 volumes:
   mysql-data:
   postgres-data:
   redis-data:
+
+networks:
+  db-network:
+    driver: bridge

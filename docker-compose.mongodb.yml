@@ -1,28 +1,33 @@
-version: '3.8'
-
 services:
 
+  # mongodb
   mongodb:
     image: mongo:${MONGODB_VERSION:-latest}
     container_name: ${MONGODB_NAME:-mongodb}
     restart: unless-stopped
+    networks:
+      - mongodb-network
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME:-root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD:-password}
     ports:
       - ${MONGODB_FORWARD_PORT:-27017}:27017
     volumes:
-      - ${MONGODB_DATA_VOLUME:-./mongodb-data}:/data/db
+      - ${MONGODB_DATA_VOLUME:-./mongodb-data/db}:/data/db
+      - ${MONGODB_CONFIG_VOLUME:-./mongodb-data/configdb}:/data/configdb
     healthcheck:
-      test: ["CMD", "mongosh", "--host", "localhost", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "mongosh", "--host", "0.0.0.0", "--eval", "db.adminCommand('ping')"]
       interval: 30s
       timeout: 20s
       retries: 10
   
+  # mongo-express
   mongo-express:
     image: mongo-express:${MONGO_EXPRESS_VERSION:-latest}
     container_name: ${MONGO_EXPRESS_NAME:-mongo-express}
     restart: unless-stopped
+    networks:
+      - mongodb-network
     ports:
       - ${MONGO_EXPRESS_FORWARD_PORT:-8081}:8081
     environment:
@@ -38,3 +43,7 @@ services:
 volumes:
   mongodb-data:
   mongo-express-data:
+
+networks:
+  mongodb-network:
+    driver: bridge
